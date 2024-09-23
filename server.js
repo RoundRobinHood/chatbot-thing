@@ -10,7 +10,7 @@ const HTTPClient = http.createServer((req, res) => {
         body += chunk.toString();
     });
     req.on('end', () => {
-        listeners.forEach(listener => listener.callback(req, res, urlObj));
+        listeners.forEach(listener => listener.callback(req, res, urlObj, body));
         if(listeners.length === 0)
         {
             res.writeHead(404, {'Content-Type' : 'text/plain'});
