@@ -1,6 +1,6 @@
-import {AddListener} from './server.js';
+const {Server, AddListener } = require('./server.js');
 
-import OpenAI from 'openai';
+const OpenAI = require('openai');
 const openai = new OpenAI();
 
 AddListener('/webhook', (req, res, urlObj) => {

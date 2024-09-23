@@ -1,8 +1,8 @@
-import http from 'http';
-import url from 'url';
+const http = require('http');
+const url = require('url');
 
 const Listeners = [];
-export const HTTPClient = http.createServer((req, res) => {
+const HTTPClient = http.createServer((req, res) => {
     const urlObj = url.parse(req.url, true);
     let listeners = Listeners.filter(listener => listener.key.pathname === urlObj.pathname && listener.key.method === req.method);
     let body = '';
@@ -18,7 +18,7 @@ export const HTTPClient = http.createServer((req, res) => {
         }
     })
 });
-export const AddListener = (path, callback, method = 'GET') => {
+const AddListener = (path, callback, method = 'GET') => {
     Listeners.push({
         key: {
             pathname: path,
@@ -31,3 +31,8 @@ export const AddListener = (path, callback, method = 'GET') => {
 HTTPClient.listen(3000, () => {
     console.log('Booted up client');
 });
+
+module.exports = {
+    HTTPClient: HTTPClient,
+    AddListener: AddListener,
+};
