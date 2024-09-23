@@ -4,14 +4,19 @@ import url from 'url';
 const Listeners = [];
 export const HTTPClient = http.createServer((req, res) => {
     const urlObj = url.parse(req.url, true);
-
-    for(let listener of Listeners)
-    {
-        if(listener.key.pathname === urlObj.pathname && listener.key.method === req.method)
+    let listeners = Listeners.filter(listener => listener.key.pathname === urlObj.pathname && listener.key.method === req.method);
+    let body = '';
+    req.on('data', chunk => {
+        body += chunk.toString();
+    });
+    req.on('end', () => {
+        listeners.forEach(listener => listener.callback(req, res, urlObj));
+        if(listeners.length === 0)
         {
-            listener.callback(req, res);
+            res.writeHead(404, {'Content-Type' : 'text/plain'});
+            res.end('Page not found');
         }
-    }
+    })
 });
 export const AddListener = (path, callback, method = 'GET') => {
     Listeners.push({
