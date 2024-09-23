@@ -1,4 +1,5 @@
 const {HTTPClient, AddListener} = require('./server.js');
+const fs = require('fs');
 
 const OpenAI = require('openai');
 const openai = new OpenAI();
@@ -23,7 +24,7 @@ AddListener('/webhook', (req, res, urlObj, body) => {
     {
         case 'messages.upsert':
         {
-            const pushname = data.data.pushName, text = data.data.message_normalized.text, number = data.data.message_normalized.remoteJid.split('@')[0];
+            const pushname = data.data.pushName, text = data.data.message_normalized.text, number = data.data.number;
             fetch(`https://server01.uazapi.dev/message/sendText/${process.env.UAZAPI_INSTANCE}`, {
                 method: 'POST',
                 headers: {
@@ -42,6 +43,11 @@ AddListener('/webhook', (req, res, urlObj, body) => {
                     }
                 })
             });
+            let list = [];
+            if(fs.existsSync('messages.json'))
+                list = JSON.parse(fs.readFileSync('messages.json'), 'utf8');
+            list.push({name: pushname, text: text, number: number});
+            fs.writeFileSync('messages.json', JSON.stringify(list));
         } break;
     }
 }, 'POST')
