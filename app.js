@@ -82,6 +82,8 @@ AddListener('/webhook', (req, res, urlObj, body) => {
             fs.writeFileSync('messages.json', JSON.stringify(list));
         } break;
     }
+    res.writeHead(200, {'Content-Type': 'text/plain'});
+    res.end('Received.');
 }, 'POST')
 
 AddListener('/chatbot', async (req, res, urlObj, body) => {
