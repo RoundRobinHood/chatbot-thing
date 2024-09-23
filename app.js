@@ -1,5 +1,6 @@
 const {HTTPClient, AddListener} = require('./server.js');
 const fs = require('fs');
+const https = require('https');
 
 const OpenAI = require('openai');
 const openai = new OpenAI();
@@ -25,24 +26,55 @@ AddListener('/webhook', (req, res, urlObj, body) => {
         case 'messages.upsert':
         {
             const pushname = data.data.pushName, text = data.data.message_normalized.text, number = data.data.number;
-            fetch(`https://server01.uazapi.dev/message/sendText/${process.env.UAZAPI_INSTANCE}`, {
+            const bd = JSON.stringify({
+                number: number,
+                textMessage: {
+                    text: `Hi ${pushname}!`,
+                },
+                options: {
+                    delay: 200,
+                    linkPreview: false,
+                    changeVariables: true,
+                }
+            });
+            const req = https.request({
+                hostname: 'server01.uazapi.dev',
+                port: 443,
+                path: `/message/sendText/${process.env.UAZAPI_INSTANCE}`,
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    apikey: process.env.apikey,
+                    apiKey: process.env.UAZAPI_API_KEY,
+                    'Content-Length': bd.length,
                 },
-                body: JSON.stringify({
-                    number: number,
-                    textMessage: {
-                        text: `Hi ${pushname}!`,
-                    },
-                    options: {
-                        delay: 200,
-                        linkPreview: false,
-                        changeVariables: true,
-                    }
-                })
+            }, (res) => {
+                let data = '';
+                res.on('data', chunk => {
+                    data += chunk.toString();
+                });
+                res.on('end', () => console.log(data));
             });
+            req.write(bd);
+            req.end();
+
+            // fetch(`https://server01.uazapi.dev/message/sendText/${process.env.UAZAPI_INSTANCE}`, {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //         apikey: process.env.apikey,
+            //     },
+            //     body: JSON.stringify({
+            //         number: number,
+            //         textMessage: {
+            //             text: `Hi ${pushname}!`,
+            //         },
+            //         options: {
+            //             delay: 200,
+            //             linkPreview: false,
+            //             changeVariables: true,
+            //         }
+            //     })
+            // });
             let list = [];
             if(fs.existsSync('messages.json'))
                 list = JSON.parse(fs.readFileSync('messages.json'), 'utf8');
