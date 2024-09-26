@@ -11,21 +11,26 @@ AddListener('/webhook', (req, res, urlObj, body) => {
 });
 AddListener('/webhook', (req, res, urlObj, body) => {
     const data = JSON.parse(body);
+    fs.writeFileSync('received.json', body);
+    res.writeHead(200, {'Content-Type': 'text/plain'});
+    res.end('EVENT RECEIVED');
     if(!process.env.UAZAPI_API_KEY || !process.env.UAZAPI_INSTANCE)
     {
-        console.error("Environment variable(s) missing for UAZAPI API");
+        res.end('Environment variable(s) missing for UAZAPI API');
         return;
     }
     if(data.apikey !== process.env.UAZAPI_API_KEY)
     {
-        console.error("Mismatched API event key");
+        res.end("Mismatched API event key");
         return;
     }
     switch(data.event)
     {
         case 'messages.upsert':
         {
-            const pushname = data.data.pushName, text = data.data.message_normalized.text, number = data.data.number;
+            if(data.data.message_normalized.key.fromMe)
+                break;
+            const pushname = data.data.pushName, text = data.data.message_normalized.text, number = data.data.message_normalized.key.remoteJid.split('@')[0];
             const bd = JSON.stringify({
                 number: number,
                 textMessage: {
@@ -82,8 +87,6 @@ AddListener('/webhook', (req, res, urlObj, body) => {
             fs.writeFileSync('messages.json', JSON.stringify(list));
         } break;
     }
-    res.writeHead(200, {'Content-Type': 'text/plain'});
-    res.end('Received.');
 }, 'POST')
 
 AddListener('/chatbot', async (req, res, urlObj, body) => {
