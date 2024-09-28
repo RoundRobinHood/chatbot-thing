@@ -9,7 +9,7 @@ AddListener('/webhook', (req, res, urlObj, body) => {
     res.writeHead(200, { 'Content-Type' : 'text/plain' });
     res.end('This is working!');
 });
-AddListener('/webhook', (req, res, urlObj, body) => {
+AddListener('/webhook', async (req, res, urlObj, body) => {
     const data = JSON.parse(body);
     fs.writeFileSync('received.json', body);
     res.writeHead(200, {'Content-Type': 'text/plain'});
@@ -31,10 +31,31 @@ AddListener('/webhook', (req, res, urlObj, body) => {
             if(data.data.message_normalized.key.fromMe)
                 break;
             const pushname = data.data.pushName, text = data.data.message_normalized.text, number = data.data.message_normalized.key.remoteJid.split('@')[0];
+            let conversation = [];
+            if(!fs.existsSync('conversations'))
+                fs.mkdirSync('conversations');
+            const filePath = `conversations/${number}.json`;
+            const maxConversationLength = process.env.CONTEXT_LENGTH ?? 5;
+            if(fs.existsSync(filePath))
+                conversation = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            conversation.push({role: 'user', content: text});
+            if(conversation.length > maxConversationLength)
+                conversation.splice(0, conversation.length - maxConversationLength);
+            const completion = await openai.chat.completions.create({
+                model: 'gpt-4o-mini',
+                messages: [
+                    {role: 'system', content: 'You are a helpful assistant for questions on WhatsApp. Please limit responses to 3 sentences.'},
+                    ...conversation
+                ],
+            });
+            const response = completion.choices[0].message.content;
+            fs.appendFileSync('responses.log', '===\n' + response + '\n');
+            conversation.push({role: 'assistant', content: response});
+            fs.writeFileSync(filePath, JSON.stringify(conversation));
             const bd = JSON.stringify({
                 number: number,
                 textMessage: {
-                    text: `Hi ${pushname}!`,
+                    text: response,
                 },
                 options: {
                     delay: 200,
