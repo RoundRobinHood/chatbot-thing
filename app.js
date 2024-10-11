@@ -41,10 +41,11 @@ AddListener('/webhook', async (req, res, urlObj, body) => {
             conversation.push({role: 'user', content: text});
             if(conversation.length > maxConversationLength)
                 conversation.splice(0, conversation.length - maxConversationLength);
+            const SystemContext = (fs.existsSync('systemcontext.txt') && fs.readFileSync('systemcontext.txt', 'utf8')) || 'You are a helpful assistant integrated into WhatsApp.';
             const completion = await openai.chat.completions.create({
                 model: 'gpt-4o-mini',
                 messages: [
-                    {role: 'system', content: 'You are a helpful assistant for questions on WhatsApp. Please limit responses to 3 sentences.'},
+                    {role: 'system', content: SystemContext},
                     ...conversation
                 ],
             });
@@ -63,44 +64,15 @@ AddListener('/webhook', async (req, res, urlObj, body) => {
                     changeVariables: true,
                 }
             });
-            const req = https.request({
-                hostname: 'server01.uazapi.dev',
-                port: 443,
-                path: `/message/sendText/${process.env.UAZAPI_INSTANCE}`,
+            const state = await fetch(`https://server01.uazapi.dev/message/sendText/${process.env.UAZAPI_INSTANCE}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     apiKey: process.env.UAZAPI_API_KEY,
-                    'Content-Length': bd.length,
                 },
-            }, (res) => {
-                let data = '';
-                res.on('data', chunk => {
-                    data += chunk.toString();
-                });
-                res.on('end', () => console.log(data));
-            });
-            req.write(bd);
-            req.end();
-
-            // fetch(`https://server01.uazapi.dev/message/sendText/${process.env.UAZAPI_INSTANCE}`, {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //         apikey: process.env.apikey,
-            //     },
-            //     body: JSON.stringify({
-            //         number: number,
-            //         textMessage: {
-            //             text: `Hi ${pushname}!`,
-            //         },
-            //         options: {
-            //             delay: 200,
-            //             linkPreview: false,
-            //             changeVariables: true,
-            //         }
-            //     })
-            // });
+                body: bd
+            }).then(response => response.text());
+            fs.writeFileSync('status.json', state);
             let list = [];
             if(fs.existsSync('messages.json'))
                 list = JSON.parse(fs.readFileSync('messages.json'), 'utf8');
